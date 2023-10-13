@@ -1,0 +1,38 @@
+"""
+ Azure SQL database LOAD and Tranform 
+"""
+import os
+import pyodbc
+import pandas as pd
+from dotenv import load_dotenv
+
+
+# load the csv files from data directory and insert into Azure SQL Database
+def load(dataset1='data/air_pol_16.csv', dataset2='data/air_pol_17.csv'):
+    """
+    Transforms and Loads data into Azure SQL database
+    """
+    df1 = pd.read_csv(dataset1)
+    df2 = pd.read_csv(dataset2)
+    load_dotenv()  # Load the environment variables from the .env file in the outer directory
+    server = os.getenv("SERVER")
+    database = os.getenv("DATABASE")
+    username = os.getenv("USERNAME")
+    password = os.getenv("PASSWORD")
+    driver = os.getenv("DRIVER")
+    conn_str = f"DRIVER={driver};SERVER={server};DATABASE={database};UID={username};PWD={password}"
+    with pyodbc.connect(conn_str) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS air_pol_16")
+        cursor.execute("CREATE TABLE air_pol_16 (Fecha,Hora,ZP,imecas,zona,contaminante,color))")
+        for _, row in df1.iterrows():
+            cursor.execute("INSERT INTO air_pol_16 VALUES (?,?, ?, ?, ?, ?,?)", row.tolist())
+        
+        cursor.execute("DROP TABLE IF EXISTS air_pol_17")
+        cursor.execute("CREATE TABLE air_pol_17 (Fecha,Hora,ZP,imecas,zona,contaminante,color))")
+        for _, row in df2.iterrows():
+            cursor.execute("INSERT INTO air_pol_17 VALUES (?,?, ?, ?, ?, ?,?)", row.tolist())
+
+        cursor.close()
+
+    return "success"
